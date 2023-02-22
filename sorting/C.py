@@ -14,8 +14,7 @@ from sys import stdin
 
 
 def compare(a: str, b: str) -> int:
-   a_b, b_a = a + b, b + a
-   return - int(a_b) + int(b_a)
+   return - int(a + b) + int(b + a)
 
 
 def main(_lines: list) -> str:
