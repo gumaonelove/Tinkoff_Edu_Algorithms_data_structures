@@ -1,118 +1,175 @@
-import random
-
-
-def sizeof(_tree):
-    return _tree.size if _tree else 0
-
-
 class Node:
-    '''Узел дерева'''
+    '''Узел декартова дерева'''
 
-    def __init__(self, value: int):
-        self.value = value # x
-        self.left = None
-        self.right = None
-        self.p = random.random()
-        self.size = value
+    def __init__(self, key: int):
+        self.key, self.min, self.max = key, key, key
+        self.suma, self.height = 0, 1
+        self.left, self.right = None, None
 
-    def recalc(self):
-        '''Пересчет количества элементов в поддереве'''
-        self.size = sizeof(self.left) + sizeof(self.right) + self.value
+    def get_height_left(self) -> int:
+        '''left'''
+        if self.left is None: return 0
+        return self.left.height
 
-    def __str__(self):
-        return f'''
-        ########################################
-        value = {self.value}, size = {self.size}
-        left = {(self.left.value, self.left.size) if self.left else None}
-        right = {(self.right.value, self.right.size) if self.right else None}
-        ########################################
-        '''
+    def get_height_right(self) -> int:
+        '''right'''
+        if self.right is None: return 0
+        return self.right.height
+
+    def get_balance(self) -> int:
+        '''balancing'''
+        return self.get_height_right() - self.get_height_left()
+
+    def get_sum_left(self) -> int:
+        '''left suma'''
+        if self.left: return self.left.suma
+        return 0
+
+    def get_sum_right(self) -> int:
+        '''right suma'''
+        if self.right: return self.right.suma
+        return 0
+
+    def get_min_left(self) -> float:
+        '''min from left tree'''
+        if self.left: return self.left.min
+        return float('inf')
+
+    def get_min_right(self) -> float:
+        '''min from right tree'''
+        if self.right: return self.right.min
+        return float('inf')
+
+    def get_max_left(self) -> float:
+        '''max from left tree'''
+        if self.left: return self.left.max
+        return float('-inf')
+
+    def get_max_right(self) -> float:
+        '''max from right tree'''
+        if self.right: return self.right.max
+        return float('-inf')
+
+    def recalc_min_max(self) -> None:
+        '''recalc min and max'''
+        self.min = min(self.get_min_right(), self.get_min_left(), self.key)
+        self.max = max(self.get_max_right(), self.get_max_left(), self.key)
+
+    def recalc_sum(self) -> None:
+        '''recalc suma'''
+        self.suma = self.get_sum_left() + self.get_sum_right()
+        if self.left: self.suma += self.left.key
+        if self.right: self.suma += self.right.key
+
+    def recalc_height(self) -> None:
+        '''recalc height'''
+        self.height = 1 + max(self.get_height_left(), self.get_height_right())
+
+    def recalc(self) -> None:
+        '''all recalc'''
+        self.recalc_height()
+        self.recalc_sum()
+        self.recalc_min_max()
 
 
-def merge(l: Node, r: Node) -> Node:
-    '''Все ключи в l <= ключом r'''
-    if l is None: return r
-    if r is None: return l
-
-    if l.p < r.p:
-        l.right = merge(l.right, r)
-        answer = l
-    else:
-        r.left = merge(l, r.left)
-        answer = r
-
-    answer.recalc()
-    return answer
-
-
-def split(node: Node, value: int) -> tuple:
-    '''Берет поддерево Node и разделяет его на два по ключу x'''
-    if node is None:
-        return None, None
-    if node.value < value:
-        l, r = split(node.right, value)
-        node.right = l
-        node.recalc()
-        return node, r
-    else:
-        l, r = split(node.left, value)
-        node.left = r
-        node.recalc()
-        return l, node
-
-
-def find(node: Node, value: int):
+def find(node: Node, x: int) -> Node:
     '''Поиск по дереву'''
-    if node is None: return None
-    if node.value == value: return node
-    elif node.value < value: return find(node.right, value)
-    elif node.value > value: return find(node.left, value)
+    if (node is None) or (node.key == x):
+        return node
+    elif node.key < x:
+        return find(node.right, x)
+    elif node.key > x:
+        return find(node.left, x)
 
 
-class Tree:
-    '''Декартово дерево'''
-
-    def __init__(self):
-        self.root = None
-
-    def add(self, value: int):
-        '''Добавление узла в дерево'''
-        if find(self.root, value):
-            return None
-        l, r = split(self.root, value)
-        self.root = merge(merge(l, Node(value)), r)
-        # print(self.root)
-
-    def remove(self, value):
-        l1, r1 = split(self.root, value)
-        l2, r2 = split(r1, value + 1)
-        self.root = merge(l1, r2)
-
-    def get(self, k) -> int:
-        '''Вывод K_i максимума'''
-        node: Node = self.root
-        while node is not None:
-            if sizeof(node.right) == k - 1:
-                return node.value
-
-            if sizeof(node.right) >= k:
-                node = node.right
-            else:
-                k -= sizeof(node.right) + 1
-                node = node.left
+def exists(node: Node, value: int) -> bool:
+    '''bool find'''
+    return find(node, value) is not None
 
 
-n = int(input())
-tree = Tree()
-answer = []
-for _ in range(n):
-    action, value = str(input()).split(' ')
-    if action == '-1':
-        tree.remove(int(value))
-    elif action == '0':
-        answer.append(tree.get(int(value)))
+def right_rotate(node: Node) -> Node:
+    '''Поворот дерева в право'''
+    left = node.left
+    node.left = left.right
+    left.right = node
+
+    node.recalc()
+    left.recalc()
+    return left
+
+
+def left_rotate(node: Node) -> Node:
+    '''Поворот дерева в лево'''
+    right = node.right
+    node.right = right.left
+    right.left = node
+
+    node.recalc()
+    right.recalc()
+    return right
+
+
+def re_balance(node: Node) -> Node:
+    '''Ре-балансировка дерева'''
+    if node.get_balance() == 2:
+        if node.right.get_balance() < 0: node.right = right_rotate(node.right)
+        return left_rotate(node)
+    if node.get_balance() == -2:
+        if node.left.get_balance() > 0: node.left = left_rotate(node.left)
+        return right_rotate(node)
+    return node
+
+
+def insert(node: Node, new_key: int) -> Node:
+    '''Добавление нового ключа'''
+    if node is None: return Node(new_key)
+
+    if new_key < node.key:
+        node.left = insert(node.left, new_key)
     else:
-        tree.add(int(value))
+        node.right = insert(node.right, new_key)
+
+    node.recalc()
+    return re_balance(node)
+
+
+def insert_node(node: Node, new_key: int) -> Node:
+    '''Вставка новой вершины'''
+    if exists(node, new_key): return node
+    return insert(node, new_key)
+
+
+def suma(node: Node, l: int, r: int) -> int:
+    '''Сумма'''
+    if node is None: return 0
+    if node.key > r: return suma(node.left, l, r)
+    if node.key < l: return suma(node.right, l, r)
+    if node.left is None and node.right is None: return node.key
+    if node.min >= l and node.max <= r: return node.suma + node.key
+
+    return suma(node.left, l, r) + suma(node.right, l, r) + node.key
+
+
+root = None
+prev = '+'
+res = 0
+n = int(input())
+answer = []
+
+for _ in range(n):
+    _str = str(input()).split(' ')
+
+    if _str[0] == '+':
+        x = int(_str[1])
+        if prev == '?':
+            root = insert_node(root, (x + res) % (10 ** 9))
+        else:
+            root = insert_node(root, x)
+    else:
+        l, r = int(_str[1]), int(_str[2])
+        res = suma(root, l, r)
+        answer.append(res)
+    prev = _str[0]
 
 
 print(*answer, sep='\n')
