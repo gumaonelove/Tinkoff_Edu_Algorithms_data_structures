@@ -13,11 +13,11 @@ class Node:
         self.left = None
         self.right = None
         self.p = random.random()
-        self.size = 1
+        self.size = value
 
     def recalc(self):
         '''Пересчет количества элементов в поддереве'''
-        self.size = sizeof(self.left) + sizeof(self.right) + 1
+        self.size = sizeof(self.left) + sizeof(self.right) + self.value
 
     def __str__(self):
         return f'''
